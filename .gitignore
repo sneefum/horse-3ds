@@ -1,0 +1,6 @@
+*.png
+*.smdh
+*.elf
+*.py
+build
+build/*
