@@ -257,9 +257,9 @@ int main(int argc, char* argv[]) {
         
         char scoreBuf[64];
         sprintf(scoreBuf, "%s%d", frenchMode ? "Pommes: " : "Apples: ", score);
-        drawString(fbTop, 0, 0, scoreBuf, 3);
+        drawString(fbTop, 0, 0, scoreBuf, 1);
 
-        drawString(fbTop, 0, 24, argv[0], 3);
+        // drawString(fbTop, 0, 24, argv[0], 3); // DEBUG
 
         for (int y = 0; y < 100; y++) {
             for (int x = 0; x < 100; x++) {
