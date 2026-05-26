@@ -77,6 +77,43 @@ void drawString(u8* fb, int x, int y, char* s, int scale) {
     }
 }
 
+void drawRectBottom(u8* fb, int x, int y, int xSize, int ySize, int col) {
+    for (int i = 0; i < xSize; i++) {
+        for (int j = 0; j < ySize; j++) {
+            drawToBottomFB(fb, x + i, y + j, col);
+        }
+    }
+}
+
+// Save data!!!
+
+void saveData(int score) {
+    FILE *file = fopen("horse-save.dat", "w");
+
+    char saveBuf[16];
+    sprintf(saveBuf, "%d", score);
+
+    fwrite(saveBuf, 1, strlen(saveBuf), file);
+
+    fclose(file);
+}
+
+int loadData() {
+    FILE *file = fopen("horse-save.dat", "r");
+
+    if (!file)
+        return 0; // Likely new save
+
+    char saveBuf[16] = {0};
+    fread(saveBuf, 1, sizeof(saveBuf) - 1, file);
+
+    fclose(file);
+
+    return atoi(saveBuf);
+}
+
+// Code starts here
+
 int main(int argc, char* argv[]) {
     srand(time(NULL));
 
@@ -93,7 +130,9 @@ int main(int argc, char* argv[]) {
     float appleX = rand() % 290;
     float appleY = rand() % 210;
 
-    int score = 0;
+    int score = loadData();
+
+    bool frenchMode = false;
     
 	while (aptMainLoop()) {	
         gspWaitForVBlank();
@@ -105,13 +144,18 @@ int main(int argc, char* argv[]) {
 		u32 kDown = hidKeysDown();
         u32 kHeld = hidKeysHeld();
 
-		if (kDown & KEY_START)
+		if (kDown & KEY_START) {
+            saveData(score);
 			break;
+        }
 
         if (kDown & KEY_LEFT)
             dir = -1;
         if (kDown & KEY_RIGHT)
             dir = 1; 
+
+        if (kDown & KEY_Y)
+            frenchMode = !frenchMode;
         
         // Directional input
 
@@ -183,19 +227,39 @@ int main(int argc, char* argv[]) {
         memset(fbBottom, 0, 240 * 320 * 3);
         memset(fbTop, 0, 240 * 400 * 3);
 
-        for (int y = 0; y < 207; y++) {
-            for (int x = 0; x < 264; x++) {
-                int pos = 3 * ((264 * y) + x);
-                int col = (title[pos + 2] << 16)
-                        | (title[pos + 1] << 8)
-                        | (title[pos]);
-                drawToTopFB(fbTop, x + 68, y + 32, col);
+        if (frenchMode) {
+            drawRectBottom(fbBottom, 0, 0, 107, 240, 0x542600);
+            drawRectBottom(fbBottom, 107, 0, 106, 240, 0xFFFFFF);
+            drawRectBottom(fbBottom, 213, 0, 107, 240, 0x2611CE);
+        }
+        
+        if (frenchMode) {
+            for (int y = 0; y < 207; y++) {
+                for (int x = 0; x < 264; x++) {
+                    int pos = 3 * ((264 * y) + x);
+                    int col = (titlefr[pos + 2] << 16)
+                            | (titlefr[pos + 1] << 8)
+                            | (titlefr[pos]);
+                    drawToTopFB(fbTop, x + 68, y + 32, col);
+                }
+            }
+        } else {
+            for (int y = 0; y < 207; y++) {
+                for (int x = 0; x < 264; x++) {
+                    int pos = 3 * ((264 * y) + x);
+                    int col = (title[pos + 2] << 16)
+                            | (title[pos + 1] << 8)
+                            | (title[pos]);
+                    drawToTopFB(fbTop, x + 68, y + 32, col);
+                }
             }
         }
         
         char scoreBuf[64];
-        sprintf(scoreBuf, "Score: %d", score);
+        sprintf(scoreBuf, "%s%d", frenchMode ? "Pommes: " : "Apples: ", score);
         drawString(fbTop, 0, 0, scoreBuf, 3);
+
+        drawString(fbTop, 0, 24, argv[0], 3);
 
         for (int y = 0; y < 100; y++) {
             for (int x = 0; x < 100; x++) {
@@ -203,7 +267,8 @@ int main(int argc, char* argv[]) {
                 int col = (horse[pos + 2] << 16)
                         | (horse[pos + 1] << 8)
                         | (horse[pos]);
-                drawToBottomFB(fbBottom, x + (int)posX, y + (int)posY, col);
+                if (col != 0)
+                    drawToBottomFB(fbBottom, x + (int)posX, y + (int)posY, col);
             }
         }
 
@@ -221,6 +286,8 @@ int main(int argc, char* argv[]) {
         gfxFlushBuffers();
 		gfxSwapBuffers();
 	}
+
+    saveData(score);
 
 	gfxExit();
 	return 0;
